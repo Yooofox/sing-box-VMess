@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# 颜色定义 (参考甬哥原版脚本)
+# 颜色定义 (已修复补充 white 函数)
 red='\033[0;31m'; green='\033[0;32m'; yellow='\033[0;33m'; blue='\033[0;36m'; bblue='\033[0;34m'; plain='\033[0m'
 red(){ echo -e "\033[31m\033[01m$1\033[0m";}
 green(){ echo -e "\033[32m\033[01m$1\033[0m";}
 yellow(){ echo -e "\033[33m\033[01m$1\033[0m";}
 blue(){ echo -e "\033[36m\033[01m$1\033[0m";}
+white(){ echo -e "\033[37m\033[01m$1\033[0m";}
 readp(){ read -p "$(yellow "$1")" $2;}
 
 # 固定配置信息
@@ -16,13 +17,13 @@ CF_TOKEN="eyJhIjoiYWYyYmU0MWQ2MDAzN2M4MGVhZTAzMTg4OTUxMmMxNTMiLCJ0IjoiZWFlOWMzNm
 
 [[ $EUID -ne 0 ]] && yellow "请以root模式运行脚本" && exit
 
-# 系统状态检测 (参考甬哥脚本)
+# 系统状态检测
 vps_status(){
     op=$(cat /etc/os-release | grep -i pretty_name | cut -d \" -f2)
     version=$(uname -r)
     cpu=$(uname -m)
     vi=$(systemd-detect-virt 2>/dev/null)
-    bbr=$(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}')
+    bbr=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}' || echo "未知")
     ipv4=$(curl -s4m5 icanhazip.com || echo "无")
     
     clear
@@ -86,16 +87,14 @@ EOF
     green "Sing-box 安装完成！"
 }
 
-# 安装 Cloudflare 隧道 (使用你提供的配置)
+# 安装 Cloudflare 隧道 
 install_cf(){
     green "开始安装 Cloudflare 隧道服务..."
-    # 按照你提供的指令执行
     sudo mkdir -p --mode=0755 /usr/share/keyrings
     curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | sudo tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null
     echo "deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main" | sudo tee /etc/apt/sources.list.d/cloudflared.list
     sudo apt-get update && sudo apt-get install cloudflared -y
     
-    # 安装服务并运行
     sudo cloudflared service install "$CF_TOKEN" --http2
     systemctl start cloudflared
     green "Cloudflare 隧道安装并启动完成！"
@@ -105,15 +104,14 @@ install_cf(){
 update_kernel(){
     green "正在检测并更新 Sing-box 内核..."
     install_sb
+    systemctl restart sing-box
     green "内核更新结束。"
     sleep 2
 }
 
-# 脚本自更新 (参考甬哥逻辑)
+# 脚本自更新 
 update_script(){
-    # 假设你把脚本放在服务器上的 /usr/bin/sb.sh
-    # 如果是本地文件，此功能会提示重新粘贴
-    green "建议直接重新运行最新的脚本代码以完成更新。"
+    green "当前使用的是本地极简版脚本，如需更新功能，请直接替换脚本代码即可。"
     sleep 2
 }
 
